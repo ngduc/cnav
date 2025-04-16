@@ -15,11 +15,11 @@ A powerful CLI tool that helps you understand git commit changes using AI. Commi
 ## 🚀 Installation
 
 ```bash
-# Install globally
-npm install -g cnav
-
-# Or use with npx
+# use with npx (nodejs)
 npx cnav [command]
+
+# OR Install globally
+npm install -g cnav
 ```
 
 ## 🔧 Requirements
