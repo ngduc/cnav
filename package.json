@@ -1,0 +1,56 @@
+{
+  "name": "cnav",
+  "version": "0.1.0",
+  "description": "Commit Navigator - A CLI tool to understand git commit changes using LLM",
+  "main": "dist/index.js",
+  "bin": {
+    "cnav": "dist/index.js"
+  },
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc -w",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint --ext .ts src/",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "git",
+    "commit",
+    "cli",
+    "navigator",
+    "changes",
+    "review",
+    "ai",
+    "llm"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.7",
+    "@types/marked": "^6.0.0",
+    "@types/node": "^22.14.1",
+    "chalk": "^4.1.2",
+    "commander": "^13.1.0",
+    "dotenv": "^16.5.0",
+    "fs-extra": "^11.3.0",
+    "glob": "^11.0.1",
+    "inquirer": "^12.5.2",
+    "marked": "^15.0.8",
+    "marked-terminal": "^7.3.0",
+    "openai": "^4.94.0",
+    "ora": "^5.4.1",
+    "simple-git": "^3.27.0",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@types/marked-terminal": "^6.1.1",
+    "@typescript-eslint/eslint-plugin": "^8.30.1",
+    "@typescript-eslint/parser": "^8.30.1",
+    "eslint": "^9.24.0",
+    "vitest": "^3.1.1"
+  }
+}
