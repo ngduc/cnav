@@ -6,6 +6,7 @@ import ora from 'ora';
 export interface LastCommandOptions {
   review?: boolean;
   days?: string;
+  md?: boolean;
 }
 
 /**
@@ -47,9 +48,14 @@ export async function lastCommand(count: string = '1', options: LastCommandOptio
     
     spinner.succeed('Analysis complete');
     
-    // Display the results
-    console.log('\n' + chalk.bold.green('📊 Commit Analysis'));
-    console.log(analysis);
+    // Display the results based on the --md flag
+    if (options.md) {
+      console.log('\n' + chalk.bold.green('📊 Commit Analysis (Markdown Output)'));
+      console.log(analysis); // Output in Markdown format
+    } else {
+      console.log('\n' + chalk.bold.green('📊 Commit Analysis (Plain Text Output)'));
+      console.log(analysis.replace(/\*\*|\`/g, '')); // Output plain text
+    }
     
   } catch (error) {
     spinner.fail('Failed to analyze commits');

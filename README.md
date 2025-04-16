@@ -57,6 +57,7 @@ Review the last N commits.
 Options:
 - `--review, -r`: Perform a code review on the commits
 - `--days, -d <days>`: Review commits from the last N days
+- `--md, -m`: Output analysis in Markdown format
 
 Examples:
 ```bash
@@ -64,6 +65,7 @@ cnav last        # Review the last commit
 cnav last 5      # Review the last 5 commits
 cnav last -d 3   # Review commits from the last 3 days
 cnav last -r     # Code review the last commit
+cnav last -m     # Output analysis in Markdown format
 ```
 
 ### `cnav changelog`

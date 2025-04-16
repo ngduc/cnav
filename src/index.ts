@@ -21,6 +21,7 @@ program
   .description('Review the last n commits (default: 1)')
   .option('-r, --review', 'Perform a code review on the commits')
   .option('-d, --days <days>', 'Review commits from the last n days')
+  .option('-m, --md', 'Output analysis in Markdown format')
   .action(lastCommand);
 
 // Command: cnav changelog
