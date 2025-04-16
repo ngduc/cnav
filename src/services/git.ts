@@ -172,10 +172,7 @@ export async function getCommitsSinceLastChangelog(): Promise<CommitData[]> {
     }
     
     // Get all commits since that date
-    const log = await git.log({
-      from: 'HEAD',
-      since: sinceDate
-    });
+    const log = await git.log([`--since=${sinceDate}`]); // Use explicit '--since=' format
     const commits = log.all;
     
     // For each commit, get the diff
