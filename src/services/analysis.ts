@@ -114,10 +114,10 @@ function createAnalysisPrompt(
   } else {
     prompt += `This is a CHANGE SUMMARY request. Please provide:
 - A concise overview of what changed
-- The purpose of the changes (if discernible)
-- Impact of the changes on the project
 - Key files and components affected\n\n`;
   }
+// - The purpose of the changes (if discernible)
+// - Impact of the changes on the project
   
   // Add project information for context
   prompt += `## Project Information\n`;
@@ -157,30 +157,48 @@ function createAnalysisPrompt(
     
     if (commit.diff) {
       prompt += `\`\`\`diff\n`;
-      prompt += commit.diff.split('\n').slice(0, 500).join('\n') + '\n... (truncated)\n\`\`\`\n\n';
+      prompt += commit.diff.split('\n').slice(0, 5000).join('\n') + '\n... (truncated)\n\`\`\`\n\n';
     }
     // console.log('--- prompt ', prompt.length)
   }
   
   // Add specific instructions based on the analysis type
+//   if (options.performCodeReview) {
+//     prompt += `
+// Please provide a detailed code review of the above changes. Include:
+// 1. A high-level summary of what the changes do
+// 2. Potential bugs, errors, or issues in the implementation
+// 3. Security concerns if applicable
+// 4. Architectural impact and design considerations
+// 5. Suggestions for improvement
+// 6. Any missing tests or documentation
+// `;
+//   } else {
+//     prompt += `
+// Please provide a clear summary of the changes including:
+// 1. What changed at a high level
+// 2. Why the changes were made (best guess based on commit messages and content)
+// 3. The impact these changes have on the project
+// 4. Key files and components affected
+// `;
+//   }
+
   if (options.performCodeReview) {
     prompt += `
-Please provide a detailed code review of the above changes. Include:
-1. A high-level summary of what the changes do
-2. Potential bugs, errors, or issues in the implementation
-3. Security concerns if applicable
-4. Architectural impact and design considerations
-5. Suggestions for improvement
-6. Any missing tests or documentation
-`;
+  Please provide a detailed code review of the above changes. Include:
+  1. A high-level summary of what the changes do
+  2. Potential bugs, errors, or issues in the implementation
+  3. Security concerns if applicable
+  4. Architectural impact and design considerations
+  5. Suggestions for improvement
+  6. Any missing tests or documentation
+  `;
   } else {
     prompt += `
-Please provide a clear summary of the changes including:
-1. What changed at a high level
-2. Why the changes were made (best guess based on commit messages and content)
-3. The impact these changes have on the project
-4. Key files and components affected
-`;
+  Please provide a clear summary of the changes including:
+  1. What changed at a high level
+  2. Key files and components affected
+  `;
   }
   
   return prompt;

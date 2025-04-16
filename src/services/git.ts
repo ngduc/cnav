@@ -52,6 +52,15 @@ export async function getLastCommits(count: number = 1): Promise<CommitData[]> {
           .filter(line => !line.includes('lock'))
           .join('\n');
 
+        const isBinaryFile = diff.includes('Binary files');
+        if (isBinaryFile) {
+          return {
+            ...commit,
+            diff: '', // Exclude binary file diffs
+            files: filteredFiles
+          };
+        }
+
         return {
           ...commit,
           diff: filteredDiff,
@@ -109,6 +118,15 @@ export async function getCommitsFromLastDays(days: number = 7): Promise<CommitDa
           .split('\n')
           .filter(line => !line.includes('lock'))
           .join('\n');
+
+        const isBinaryFile = diff.includes('Binary files');
+        if (isBinaryFile) {
+          return {
+            ...commit,
+            diff: '', // Exclude binary file diffs
+            files: filteredFiles
+          };
+        }
 
         return {
           ...commit,
@@ -178,6 +196,15 @@ export async function getCommitsSinceLastChangelog(): Promise<CommitData[]> {
           .split('\n')
           .filter(line => !line.includes('lock'))
           .join('\n');
+
+        const isBinaryFile = diff.includes('Binary files');
+        if (isBinaryFile) {
+          return {
+            ...commit,
+            diff: '', // Exclude binary file diffs
+            files: filteredFiles
+          };
+        }
 
         return {
           ...commit,
