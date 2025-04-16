@@ -46,10 +46,16 @@ export async function getLastCommits(count: number = 1): Promise<CommitData[]> {
           .split('\n')
           .filter(file => file.trim() !== '');
         
+        const filteredFiles = files.filter(file => !file.match(/.*lock.*\..*/));
+        const filteredDiff = diff
+          .split('\n')
+          .filter(line => !line.includes('lock'))
+          .join('\n');
+
         return {
           ...commit,
-          diff,
-          files
+          diff: filteredDiff,
+          files: filteredFiles
         };
       })
     );
@@ -98,10 +104,16 @@ export async function getCommitsFromLastDays(days: number = 7): Promise<CommitDa
           .split('\n')
           .filter(file => file.trim() !== '');
         
+        const filteredFiles = files.filter(file => !file.match(/.*lock.*\..*/));
+        const filteredDiff = diff
+          .split('\n')
+          .filter(line => !line.includes('lock'))
+          .join('\n');
+
         return {
           ...commit,
-          diff,
-          files
+          diff: filteredDiff,
+          files: filteredFiles
         };
       })
     );
@@ -161,10 +173,16 @@ export async function getCommitsSinceLastChangelog(): Promise<CommitData[]> {
           .split('\n')
           .filter(file => file.trim() !== '');
         
+        const filteredFiles = files.filter(file => !file.match(/.*lock.*\..*/));
+        const filteredDiff = diff
+          .split('\n')
+          .filter(line => !line.includes('lock'))
+          .join('\n');
+
         return {
           ...commit,
-          diff,
-          files
+          diff: filteredDiff,
+          files: filteredFiles
         };
       })
     );

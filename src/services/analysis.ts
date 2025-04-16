@@ -2,7 +2,7 @@ import { CommitData, getProjectInfo, getProjectTree } from './git';
 import { OpenAI } from 'openai';
 import chalk from 'chalk';
 import dotenv from 'dotenv';
-import { getOpenAIApiKey, setupApiKey } from '../utils/config';
+import { getOpenAIApiKey, setupApiKey, getAnthropicApiKey, setupAnthropicApiKey } from '../utils/config';
 
 // Load environment variables
 dotenv.config();
@@ -14,60 +14,75 @@ export interface AnalysisOptions {
 }
 
 /**
- * Get OpenAI API client
+ * Get LLM client or API key (OpenAI or Anthropic)
  */
-async function getOpenAIClient(): Promise<OpenAI> {
-  let apiKey = await getOpenAIApiKey();
-  
-  if (!apiKey) {
-    console.log(chalk.yellow('OpenAI API key not found. Setting up configuration...'));
-    apiKey = await setupApiKey();
+async function getLLMProvider(): Promise<
+  { provider: 'openai'; client: OpenAI } | { provider: 'anthropic'; apiKey: string }
+> {
+  let openaiKey = await getOpenAIApiKey();
+  if (openaiKey) {
+    return { provider: 'openai', client: new OpenAI({ apiKey: openaiKey }) };
   }
-  
-  return new OpenAI({ apiKey });
+  let anthropicKey = await getAnthropicApiKey();
+  if (!anthropicKey) {
+    console.log(chalk.yellow('No OpenAI or Anthropic API key found. Setting up Anthropic configuration...'));
+    anthropicKey = await setupAnthropicApiKey();
+  }
+  return { provider: 'anthropic', apiKey: anthropicKey };
 }
 
 /**
- * Analyze commits using OpenAI
+ * Analyze commits using OpenAI or Anthropic
  */
 export async function analyzeCommits(
   commits: CommitData[],
   options: AnalysisOptions
 ): Promise<string> {
   try {
-    // Get project information for context
     const projectInfo = await getProjectInfo();
     const projectTree = await getProjectTree();
-    
-    // Create OpenAI client
-    const openai = await getOpenAIClient();
-    
-    // Prepare prompt with commit data and context
     const prompt = createAnalysisPrompt(commits, projectInfo, projectTree, options);
-    
-    // Call OpenAI API
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',  // Use a suitable model based on availability
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert software developer assistant that helps understand git commits and code changes. Provide clear, concise, and insightful analysis.'
+    const llm = await getLLMProvider();
+    if (llm.provider === 'openai') {
+      const response = await llm.client.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are an expert software developer assistant that helps understand git commits and code changes. Provide clear, concise, and insightful analysis.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.2,
+        max_tokens: 5000, // Reduced from 300000 to a more reasonable size
+      });
+      return response.choices[0]?.message?.content || 'No analysis available';
+    } else {
+      // Anthropic API call (Claude)
+      const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': llm.apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
         },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.2,
-      max_tokens: 3000,
-    });
-    
-    // Extract and return the analysis
-    return response.choices[0]?.message?.content || 'No analysis available';
+        body: JSON.stringify({
+          model: 'claude-3-haiku-20240307',
+          max_tokens: 3000,
+          temperature: 0.2,
+          system: 'You are an expert software developer assistant that helps understand git commits and code changes. Provide clear, concise, and insightful analysis.',
+          messages: [
+            { role: 'user', content: prompt }
+          ]
+        })
+      });
+      if (!anthropicRes.ok) {
+        throw new Error(`Anthropic API error: ${anthropicRes.statusText}`);
+      }
+      const data = await anthropicRes.json();
+      return (data as any).content?.[0]?.text || 'No analysis available';
+    }
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes('API key')) {
-        throw new Error('Invalid or missing OpenAI API key. Please check your configuration.');
+        throw new Error('Invalid or missing LLM API key. Please check your configuration.');
       }
       throw error;
     }
@@ -141,8 +156,10 @@ function createAnalysisPrompt(
     }
     
     if (commit.diff) {
-      prompt += `\`\`\`diff\n${commit.diff}\n\`\`\`\n\n`;
+      prompt += `\`\`\`diff\n`;
+      prompt += commit.diff.split('\n').slice(0, 500).join('\n') + '\n... (truncated)\n\`\`\`\n\n';
     }
+    // console.log('--- prompt ', prompt.length)
   }
   
   // Add specific instructions based on the analysis type

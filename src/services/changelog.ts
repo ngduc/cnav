@@ -44,7 +44,7 @@ export async function generateChangelog(
     
     // Call OpenAI API
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',  // Use a suitable model based on availability
+      model: 'gpt-4o-mini',  // Use a suitable model based on availability
       messages: [
         {
           role: 'system',

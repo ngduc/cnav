@@ -15,7 +15,8 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 // Default configuration
 const DEFAULT_CONFIG = {
   openaiApiKey: '',
-  defaultModel: 'gpt-4-turbo-preview',
+  anthropicApiKey: '',
+  defaultModel: 'gpt-4o-mini',
   maxDepth: 3,
   colorOutput: true,
 };
@@ -23,6 +24,7 @@ const DEFAULT_CONFIG = {
 // Config interface
 export interface CNavConfig {
   openaiApiKey: string;
+  anthropicApiKey: string;
   defaultModel: string;
   maxDepth: number;
   colorOutput: boolean;
@@ -89,7 +91,6 @@ export async function getOpenAIApiKey(): Promise<string | null> {
   if (config.openaiApiKey) {
     return config.openaiApiKey;
   }
-  
   return null;
 }
 
@@ -118,5 +119,45 @@ export async function setupApiKey(): Promise<string> {
   await saveConfig({ openaiApiKey: apiKey });
   console.log(chalk.green('API key saved to configuration.'));
   
+  return apiKey;
+}
+
+/**
+ * Get Anthropic API key from environment or config
+ */
+export async function getAnthropicApiKey(): Promise<string | null> {
+  if (process.env.ANTHROPIC_API_KEY) {
+    return process.env.ANTHROPIC_API_KEY;
+  }
+  const config = await loadConfig();
+  if (config.anthropicApiKey) {
+    return config.anthropicApiKey;
+  }
+  return null;
+}
+
+/**
+ * Prompt user to set up Anthropic API key if not found
+ */
+export async function setupAnthropicApiKey(): Promise<string> {
+  console.log(chalk.yellow('Anthropic API key not found.'));
+  console.log('To use cnav with Anthropic, you need to provide an Anthropic API key.');
+  console.log('You can get one from https://console.anthropic.com/api-keys\n');
+
+  const { apiKey } = await inquirer.prompt([
+    {
+      type: 'password',
+      name: 'apiKey',
+      message: 'Please enter your Anthropic API key:',
+      validate: (input) => {
+        if (!input) return 'API key cannot be empty';
+        if (!input.startsWith('sk-ant-')) return 'Invalid API key format. It should start with "sk-ant-"';
+        return true;
+      },
+    },
+  ]);
+
+  await saveConfig({ anthropicApiKey: apiKey });
+  console.log(chalk.green('Anthropic API key saved to configuration.'));
   return apiKey;
 }

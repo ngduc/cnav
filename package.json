@@ -41,6 +41,7 @@
     "inquirer": "^12.5.2",
     "marked": "^15.0.8",
     "marked-terminal": "^7.3.0",
+    "node-fetch": "3.3.2",
     "openai": "^4.94.0",
     "ora": "^5.4.1",
     "simple-git": "^3.27.0",
