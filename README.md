@@ -15,18 +15,18 @@ A powerful CLI tool that helps you understand git commit changes using AI. Commi
 ## 🚀 Installation
 
 ```bash
-# use with npx (nodejs)
-npx cnav [command]
+# use with npx (nodej 16+)
+npx cnav
 
 # OR Install globally
 npm install -g cnav
 ```
 
-## 🔧 Requirements
+- REQUIRE: OPENAI_API_KEY env variable (get one at https://platform.openai.com/api-keys)
 
-- Node.js 16 or later
-- Git repository
-- OpenAI API key (get one at https://platform.openai.com/api-keys)
+## 📋 Demo
+
+<img src="docs/cnav-screenshot-1.png">
 
 ## 📋 Usage
 
@@ -103,10 +103,6 @@ export OPENAI_API_KEY=your_api_key_here
 - **Project Handovers**: Document project's architectural patterns and design decisions
 - **Security**: Identify complex vulnerability patterns and potential issues
 - **Architecture**: Get insights on architectural changes and technical decisions
-
-## 📋 Demo
-
-<img src="docs/cnav-screenshot-1.png">
 
 ## 📜 License
 
