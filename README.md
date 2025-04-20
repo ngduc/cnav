@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/cnav.svg)](https://www.npmjs.com/package/cnav)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A powerful CLI tool that helps you understand git commit changes using AI. Commit Navigator analyzes your git history and provides intelligent insights about code changes.
+A simple CLI tool that helps you understand recent git commit changes using AI. Commit Navigator analyzes your git history and provides insights about code changes.
 
 ## ✨ Features
 
