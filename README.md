@@ -104,15 +104,9 @@ export OPENAI_API_KEY=your_api_key_here
 - **Security**: Identify complex vulnerability patterns and potential issues
 - **Architecture**: Get insights on architectural changes and technical decisions
 
-## 🤝 Contributing
+## 📋 Demo
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+<img src="docs/cnav-screenshot-1.png">
 
 ## 📜 License
 
