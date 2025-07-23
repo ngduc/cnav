@@ -1,6 +1,6 @@
 {
   "name": "cnav",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Commit Navigator - A CLI tool to understand git commit changes using LLM",
   "main": "dist/index.js",
   "bin": {
