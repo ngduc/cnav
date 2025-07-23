@@ -98,7 +98,7 @@ cnav changelog --format daily  # Generate daily changelog
 
 ## 🔐 Configuration
 
-On first run, you'll be prompted to enter your OpenAI API key. You can also set it up manually:
+On first run, you'll be prompted to enter your OPENAI_API_KEY or ANTHROPIC_API_KEY. You can also set it up manually:
 
 1. Create a `.env` file in your working directory with:
 ```
