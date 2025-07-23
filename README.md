@@ -17,12 +17,24 @@ A simple CLI tool that helps you understand recent git commit changes using AI. 
 ```bash
 # use with npx (nodej 16+)
 npx cnav
+npx cnav --help
 
-# OR Install globally
+# OR install cnav globally
 npm install -g cnav
 ```
 
 - REQUIRE: OPENAI_API_KEY env variable (get one at https://platform.openai.com/api-keys)
+  - OR: ANTHROPIC_API_KEY env variable
+
+## DEV
+
+```bash
+pnpm install
+pnpm build
+node dist/src/index.js last 3d
+```
+
+
 
 ## 📋 Demo
 
@@ -31,6 +43,9 @@ npm install -g cnav
 ## 📋 Usage
 
 ```bash
+# Analyze the current directory
+cnav    (OR: cnav analyze <path>)
+
 # Review the last commit
 cnav last
 

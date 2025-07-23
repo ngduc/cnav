@@ -99,6 +99,29 @@ function createChangelogPrompt(
     prompt += `Description: ${projectInfo.packageJson.description || 'N/A'}\n`;
   }
   
+  // Add technology context from configFiles
+  if (projectInfo.configFiles) {
+    const { configFiles } = projectInfo;
+    const technologies = Object.keys(configFiles);
+    
+    if (technologies.length > 0) {
+      prompt += `Technologies: ${technologies.join(', ')}\n`;
+    }
+    
+    // Provide specific context for different project types
+    if (configFiles.python) {
+      prompt += `Python project with relevant dependencies and configuration\n`;
+    }
+    
+    if (configFiles.docker) {
+      prompt += `Containerized application with Docker\n`;
+    }
+    
+    if (configFiles.cicd) {
+      prompt += `CI/CD pipeline configured for automated deployment/testing\n`;
+    }
+  }
+  
   // Add commit information
   prompt += `\n## Commits to Include in Changelog (${commits.length})\n\n`;
   

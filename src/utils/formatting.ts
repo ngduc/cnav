@@ -82,6 +82,7 @@ export function formatError(error: Error | string): string {
 export function formatProjectStats(projectInfo: Record<string, any>): string {
   let output = chalk.bold.blue('Project Summary:\n');
 
+  // Handle Node.js/JavaScript projects
   if (projectInfo.packageJson) {
     output += chalk.bold('Name: ') + `${projectInfo.packageJson.name || 'Unknown'}\n`;
     output += chalk.bold('Version: ') + `${projectInfo.packageJson.version || 'Unknown'}\n`;
@@ -93,8 +94,40 @@ export function formatProjectStats(projectInfo: Record<string, any>): string {
     }
   }
 
-  if (projectInfo.pyproject) {
-    output += chalk.bold('Type: ') + 'Python Project\n';
+  // Handle new configFiles structure
+  if (projectInfo.configFiles) {
+    const { configFiles } = projectInfo;
+    const technologies = Object.keys(configFiles);
+    
+    if (technologies.length > 0) {
+      output += chalk.bold('Technologies: ') + `${technologies.join(', ')}\n`;
+    }
+    
+    // Show specific project types
+    if (configFiles.python) {
+      output += chalk.bold('Type: ') + 'Python Project\n';
+    }
+    
+    if (configFiles.java) {
+      output += chalk.bold('Type: ') + 'Java Project\n';
+    }
+    
+    if (configFiles.rust) {
+      output += chalk.bold('Type: ') + 'Rust Project\n';
+    }
+    
+    if (configFiles.go) {
+      output += chalk.bold('Type: ') + 'Go Project\n';
+    }
+    
+    if (configFiles.docker) {
+      output += chalk.bold('Containerization: ') + 'Docker\n';
+    }
+    
+    if (configFiles.cicd) {
+      const cicdTools = Object.keys(configFiles.cicd);
+      output += chalk.bold('CI/CD: ') + `${cicdTools.join(', ')}\n`;
+    }
   }
 
   return output;

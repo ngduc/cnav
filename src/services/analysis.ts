@@ -1,8 +1,7 @@
 import { CommitData, getProjectInfo, getProjectTree } from './git';
-import { OpenAI } from 'openai';
 import chalk from 'chalk';
 import dotenv from 'dotenv';
-import { getOpenAIApiKey, setupApiKey, getAnthropicApiKey, setupAnthropicApiKey } from '../utils/config';
+import { invoke_llm } from '../utils/llm_utils';
 
 // Load environment variables
 dotenv.config();
@@ -13,23 +12,7 @@ export interface AnalysisOptions {
   detailedSummary?: boolean;
 }
 
-/**
- * Get LLM client or API key (OpenAI or Anthropic)
- */
-async function getLLMProvider(): Promise<
-  { provider: 'openai'; client: OpenAI } | { provider: 'anthropic'; apiKey: string }
-> {
-  let openaiKey = await getOpenAIApiKey();
-  if (openaiKey) {
-    return { provider: 'openai', client: new OpenAI({ apiKey: openaiKey }) };
-  }
-  let anthropicKey = await getAnthropicApiKey();
-  if (!anthropicKey) {
-    console.log(chalk.yellow('No OpenAI or Anthropic API key found. Setting up Anthropic configuration...'));
-    anthropicKey = await setupAnthropicApiKey();
-  }
-  return { provider: 'anthropic', apiKey: anthropicKey };
-}
+
 
 /**
  * Analyze commits using OpenAI or Anthropic
@@ -42,43 +25,12 @@ export async function analyzeCommits(
     const projectInfo = await getProjectInfo();
     const projectTree = await getProjectTree();
     const prompt = createAnalysisPrompt(commits, projectInfo, projectTree, options);
-    const llm = await getLLMProvider();
-    if (llm.provider === 'openai') {
-      const response = await llm.client.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are an expert software developer assistant that helps understand git commits and code changes. Provide clear, concise, and insightful analysis.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.2,
-        max_tokens: 5000, // Reduced from 300000 to a more reasonable size
-      });
-      return response.choices[0]?.message?.content || 'No analysis available';
-    } else {
-      // Anthropic API call (Claude)
-      const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': llm.apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-3-haiku-20240307',
-          max_tokens: 3000,
-          temperature: 0.2,
-          system: 'You are an expert software developer assistant that helps understand git commits and code changes. Provide clear, concise, and insightful analysis.',
-          messages: [
-            { role: 'user', content: prompt }
-          ]
-        })
-      });
-      if (!anthropicRes.ok) {
-        throw new Error(`Anthropic API error: ${anthropicRes.statusText}`);
-      }
-      const data = await anthropicRes.json();
-      return (data as any).content?.[0]?.text || 'No analysis available';
-    }
+    
+    const systemMessage = 'You are an expert software developer assistant that helps understand git commits and code changes. Provide clear, concise, and insightful analysis.';
+    
+    return await invoke_llm(prompt, systemMessage, {
+      temperature: 0.2
+    });
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes('API key')) {
@@ -122,21 +74,59 @@ function createAnalysisPrompt(
   // Add project information for context
   prompt += `## Project Information\n`;
   
+  // Handle Node.js/JavaScript projects
   if (projectInfo.packageJson) {
     prompt += `Project name: ${projectInfo.packageJson.name || 'Unknown'}\n`;
     prompt += `Description: ${projectInfo.packageJson.description || 'N/A'}\n`;
     prompt += `Dependencies: ${Object.keys(projectInfo.packageJson.dependencies || {}).join(', ') || 'None'}\n`;
   }
   
-  if (projectInfo.pyproject) {
-    prompt += `Python project with pyproject.toml\n`;
+  // Handle configuration files from new structure
+  if (projectInfo.configFiles) {
+    const { configFiles } = projectInfo;
+    
+    // Add technology stack information
+    const technologies = Object.keys(configFiles);
+    if (technologies.length > 0) {
+      prompt += `Technologies detected: ${technologies.join(', ')}\n`;
+    }
+    
+    // Handle Python projects
+    if (configFiles.python) {
+      if (configFiles.python['pyproject.toml']) {
+        prompt += `Python project with pyproject.toml configuration\n`;
+      }
+      if (configFiles.python['requirements.txt']) {
+        const requirements = configFiles.python['requirements.txt'].content;
+        const deps = requirements.split('\n').filter((r: string) => r.trim() !== '' && !r.startsWith('#'));
+        prompt += `Python requirements: ${deps.slice(0, 8).join(', ')}${deps.length > 8 ? ' and more...' : ''}\n`;
+      }
+    }
+    
+    // Handle other key technologies for context
+    if (configFiles.docker) {
+      prompt += `Containerized with Docker\n`;
+    }
+    
+    if (configFiles.cicd) {
+      prompt += `CI/CD pipeline configured\n`;
+    }
   }
   
-  if (projectInfo.requirements) {
-    prompt += `Python requirements: ${projectInfo.requirements.split('\n').filter((r: string) => r.trim() !== '').join(', ')}\n`;
+  // Add README files for project context
+  if (projectInfo.README && Object.keys(projectInfo.README).length > 0) {
+    prompt += `\n## Project Documentation\n`;
+    Object.entries(projectInfo.README).forEach(([path, content]) => {
+      // Limit README content to avoid prompt bloat (first 2000 characters)
+      const truncatedContent = (content as string).length > 2000 
+        ? (content as string).substring(0, 2000) + '...\n[README truncated for brevity]'
+        : content as string;
+      
+      prompt += `### ${path}\n\`\`\`\n${truncatedContent}\n\`\`\`\n\n`;
+    });
   }
   
-  prompt += `\n## Project Structure\n\`\`\`\n${projectTree}\`\`\`\n\n`;
+  prompt += `## Project Structure\n\`\`\`\n${projectTree}\`\`\`\n\n`;
   
   // Add commit information
   prompt += `## Commits to Analyze (${commits.length})\n\n`;

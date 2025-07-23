@@ -1,6 +1,7 @@
 import simpleGit, { SimpleGit, DefaultLogFields, ListLogLine } from 'simple-git';
 import fs from 'fs-extra';
 import path from 'path';
+import { findReadmeFiles, getExcludedDirectories } from '../utils/utils';
 
 // Interface for commit data
 export interface CommitData extends DefaultLogFields {
@@ -224,25 +225,159 @@ export async function getProjectInfo(): Promise<Record<string, any>> {
   try {
     const projectInfo: Record<string, any> = {};
     
-    // Get package.json info if exists
-    const packageJsonPath = path.join(process.cwd(), 'package.json');
-    if (await fs.pathExists(packageJsonPath)) {
-      const packageJson = await fs.readJson(packageJsonPath);
-      projectInfo.packageJson = packageJson;
+    // Define project configuration files for various languages, frameworks, and tools
+    const configFiles = [
+      // Node.js/JavaScript
+      { path: 'package.json', category: 'nodejs', type: 'json', description: 'Node.js package configuration' },
+      { path: 'package-lock.json', category: 'nodejs', type: 'json', description: 'NPM lock file' },
+      { path: 'yarn.lock', category: 'nodejs', type: 'text', description: 'Yarn lock file' },
+      { path: 'pnpm-lock.yaml', category: 'nodejs', type: 'text', description: 'PNPM lock file' },
+      { path: '.nvmrc', category: 'nodejs', type: 'text', description: 'Node version manager config' },
+      { path: 'tsconfig.json', category: 'nodejs', type: 'json', description: 'TypeScript configuration' },
+      { path: 'vite.config.js', category: 'nodejs', type: 'text', description: 'Vite configuration' },
+      { path: 'vite.config.ts', category: 'nodejs', type: 'text', description: 'Vite configuration (TypeScript)' },
+      { path: 'webpack.config.js', category: 'nodejs', type: 'text', description: 'Webpack configuration' },
+      { path: 'next.config.js', category: 'nodejs', type: 'text', description: 'Next.js configuration' },
+      { path: 'nuxt.config.js', category: 'nodejs', type: 'text', description: 'Nuxt.js configuration' },
+      { path: 'tailwind.config.js', category: 'nodejs', type: 'text', description: 'Tailwind CSS configuration' },
+      
+      // Python
+      { path: 'pyproject.toml', category: 'python', type: 'text', description: 'Python project configuration' },
+      { path: 'requirements.txt', category: 'python', type: 'text', description: 'Python dependencies' },
+      { path: 'setup.py', category: 'python', type: 'text', description: 'Python package setup' },
+      { path: 'setup.cfg', category: 'python', type: 'text', description: 'Python setup configuration' },
+      { path: 'Pipfile', category: 'python', type: 'text', description: 'Pipenv configuration' },
+      { path: 'poetry.lock', category: 'python', type: 'text', description: 'Poetry lock file' },
+      { path: 'environment.yml', category: 'python', type: 'text', description: 'Conda environment' },
+      { path: 'tox.ini', category: 'python', type: 'text', description: 'Tox testing configuration' },
+      { path: 'pytest.ini', category: 'python', type: 'text', description: 'Pytest configuration' },
+      
+      // Java
+      { path: 'pom.xml', category: 'java', type: 'text', description: 'Maven project configuration' },
+      { path: 'build.gradle', category: 'java', type: 'text', description: 'Gradle build script' },
+      { path: 'gradle.properties', category: 'java', type: 'text', description: 'Gradle properties' },
+      { path: 'settings.gradle', category: 'java', type: 'text', description: 'Gradle settings' },
+      
+      // C#/.NET
+      { path: 'global.json', category: 'dotnet', type: 'json', description: '.NET global configuration' },
+      { path: 'Directory.Build.props', category: 'dotnet', type: 'text', description: 'MSBuild properties' },
+      
+      // Go
+      { path: 'go.mod', category: 'go', type: 'text', description: 'Go module definition' },
+      { path: 'go.sum', category: 'go', type: 'text', description: 'Go module checksums' },
+      
+      // Rust
+      { path: 'Cargo.toml', category: 'rust', type: 'text', description: 'Rust package configuration' },
+      { path: 'Cargo.lock', category: 'rust', type: 'text', description: 'Rust lock file' },
+      
+      // Ruby
+      { path: 'Gemfile', category: 'ruby', type: 'text', description: 'Ruby gem dependencies' },
+      { path: 'Gemfile.lock', category: 'ruby', type: 'text', description: 'Ruby gem lock file' },
+      
+      // PHP
+      { path: 'composer.json', category: 'php', type: 'json', description: 'PHP Composer configuration' },
+      { path: 'composer.lock', category: 'php', type: 'json', description: 'PHP Composer lock file' },
+      
+      // Docker
+      { path: 'Dockerfile', category: 'docker', type: 'text', description: 'Docker container definition' },
+      { path: 'docker-compose.yml', category: 'docker', type: 'text', description: 'Docker Compose configuration' },
+      { path: 'docker-compose.yaml', category: 'docker', type: 'text', description: 'Docker Compose configuration' },
+      
+      // Build tools
+      { path: 'Makefile', category: 'build', type: 'text', description: 'Make build configuration' },
+      { path: 'CMakeLists.txt', category: 'build', type: 'text', description: 'CMake build configuration' },
+      
+      // Linting/Formatting
+      { path: '.eslintrc.json', category: 'linting', type: 'json', description: 'ESLint configuration' },
+      { path: '.eslintrc.js', category: 'linting', type: 'text', description: 'ESLint configuration' },
+      { path: '.prettierrc', category: 'linting', type: 'json', description: 'Prettier configuration' },
+      { path: '.prettierrc.json', category: 'linting', type: 'json', description: 'Prettier configuration' },
+      { path: '.editorconfig', category: 'linting', type: 'text', description: 'Editor configuration' },
+      
+      // Environment
+      { path: '.env', category: 'env', type: 'text', description: 'Environment variables' },
+      { path: '.env.example', category: 'env', type: 'text', description: 'Environment variables example' },
+      
+      // CI/CD
+      { path: '.github/workflows', category: 'cicd', type: 'directory', description: 'GitHub Actions workflows' },
+      { path: '.gitlab-ci.yml', category: 'cicd', type: 'text', description: 'GitLab CI configuration' },
+      { path: '.travis.yml', category: 'cicd', type: 'text', description: 'Travis CI configuration' },
+      { path: 'Jenkinsfile', category: 'cicd', type: 'text', description: 'Jenkins pipeline configuration' },
+    ];
+    
+    // Organize found configs by category
+    const foundConfigs: Record<string, Record<string, any>> = {};
+    
+    // Check each configuration file
+    for (const config of configFiles) {
+      const filePath = path.join(process.cwd(), config.path);
+      
+      if (config.type === 'directory') {
+        // Check if directory exists and list files
+        if (await fs.pathExists(filePath)) {
+          try {
+            const files = await fs.readdir(filePath);
+            if (files.length > 0) {
+              if (!foundConfigs[config.category]) {
+                foundConfigs[config.category] = {};
+              }
+              foundConfigs[config.category][config.path] = {
+                description: config.description,
+                type: 'directory',
+                files: files.filter(f => f.endsWith('.yml') || f.endsWith('.yaml'))
+              };
+            }
+          } catch (e) {
+            // Skip if can't read directory
+          }
+        }
+      } else if (await fs.pathExists(filePath)) {
+        try {
+          let content;
+          if (config.type === 'json') {
+            content = await fs.readJson(filePath);
+          } else {
+            content = await fs.readFile(filePath, 'utf8');
+          }
+          
+          if (!foundConfigs[config.category]) {
+            foundConfigs[config.category] = {};
+          }
+          
+          foundConfigs[config.category][config.path] = {
+            description: config.description,
+            type: config.type,
+            content: content
+          };
+        } catch (e) {
+          // If we can't read the file, just note its existence
+          if (!foundConfigs[config.category]) {
+            foundConfigs[config.category] = {};
+          }
+          foundConfigs[config.category][config.path] = {
+            description: config.description,
+            type: config.type,
+            exists: true,
+            error: 'Unable to read file content'
+          };
+        }
+      }
     }
     
-    // Get pyproject.toml if exists
-    const pyprojectPath = path.join(process.cwd(), 'pyproject.toml');
-    if (await fs.pathExists(pyprojectPath)) {
-      const pyproject = await fs.readFile(pyprojectPath, 'utf8');
-      projectInfo.pyproject = pyproject;
+    // Add found configs to project info
+    if (Object.keys(foundConfigs).length > 0) {
+      projectInfo.configFiles = foundConfigs;
     }
     
-    // Get requirements.txt if exists
-    const requirementsPath = path.join(process.cwd(), 'requirements.txt');
-    if (await fs.pathExists(requirementsPath)) {
-      const requirements = await fs.readFile(requirementsPath, 'utf8');
-      projectInfo.requirements = requirements;
+    // Keep backward compatibility for package.json (commonly used)
+    if (foundConfigs.nodejs?.['package.json']?.content) {
+      projectInfo.packageJson = foundConfigs.nodejs['package.json'].content;
+    }
+    
+    // Get README files from current directory and 1 level down
+    const readmeFiles = await findReadmeFiles();
+    if (Object.keys(readmeFiles).length > 0) {
+      projectInfo.README = readmeFiles;
     }
     
     // Get git remote info
@@ -277,14 +412,23 @@ export async function getProjectTree(maxDepth: number = 3): Promise<string> {
     // This is a simple implementation. Could be expanded for better tree visualization.
     const git = getGit();
     
+    // Get consolidated list of directories to exclude from the tree (reduces noise)
+    const excludedDirectories = new Set(getExcludedDirectories());
+    
     // Get ls-tree from git to list files that are tracked
     const files = await git.raw(['ls-files']);
     const fileList = files.split('\n').filter(f => f.trim() !== '');
     
+    // Filter out files in excluded directories
+    const filteredFiles = fileList.filter(file => {
+      const parts = file.split('/');
+      return !parts.some(part => excludedDirectories.has(part));
+    });
+    
     // Organize files into a tree structure
     const tree: Record<string, any> = {};
     
-    for (const file of fileList) {
+    for (const file of filteredFiles) {
       const parts = file.split('/');
       let current = tree;
       
