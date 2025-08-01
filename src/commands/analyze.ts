@@ -8,6 +8,7 @@ import { promises as fs } from 'fs';
 export interface AnalyzeCommandOptions {
   review?: boolean;
   md?: boolean;
+  outputContext?: boolean;
 }
 
 /**
@@ -41,6 +42,30 @@ export async function analyzeCommand(projectPath: string = '.', options: Analyze
       // Get project information and structure
       const projectInfo = await getProjectInfo();
       const projectTree = await getProjectTree();
+      
+      // Handle --oc flag for context output only
+      if (options.outputContext) {
+        spinner.text = 'Generating repository context...';
+        
+        const context = generateRepositoryContext(projectInfo, projectTree, targetPath);
+        
+        // Write context to README_context.md
+        const contextPath = path.join(targetPath, 'README_context.md');
+        await fs.writeFile(contextPath, context, 'utf8');
+        
+        spinner.succeed('Repository context generated');
+        console.log(chalk.green(`\n📄 Repository context saved to: ${contextPath}`));
+        
+        if (options.md) {
+          console.log('\n' + chalk.bold.green('📊 Repository Context (Markdown Output)'));
+          console.log(context);
+        } else {
+          console.log('\n' + chalk.bold.green('📊 Repository Context (Plain Text Output)'));
+          console.log(context.replace(/\*\*|\`/g, ''));
+        }
+        
+        return;
+      }
       
       spinner.text = 'Analyzing current project...';
       
@@ -89,6 +114,91 @@ export async function analyzeCommand(projectPath: string = '.', options: Analyze
 }
 
 /**
+ * Generate repository context without analysis instructions
+ */
+function generateRepositoryContext(
+  projectInfo: Record<string, any>,
+  projectTree: string,
+  projectPath: string
+): string {
+  let context = `# Repository Context\n\n`;
+  
+  // Add project information
+  context += `## Project Information\n`;
+  context += `Path: ${projectPath}\n`;
+  
+  // Handle Node.js/JavaScript projects
+  if (projectInfo.packageJson) {
+    context += `Project name: ${projectInfo.packageJson.name || 'Unknown'}\n`;
+    context += `Description: ${projectInfo.packageJson.description || 'N/A'}\n`;
+    context += `Version: ${projectInfo.packageJson.version || 'N/A'}\n`;
+    context += `Dependencies: ${Object.keys(projectInfo.packageJson.dependencies || {}).join(', ') || 'None'}\n`;
+    context += `Dev Dependencies: ${Object.keys(projectInfo.packageJson.devDependencies || {}).join(', ') || 'None'}\n`;
+    
+    if (projectInfo.packageJson.scripts) {
+      context += `Scripts: ${Object.keys(projectInfo.packageJson.scripts).join(', ')}\n`;
+    }
+  }
+  
+  // Handle configuration files from new structure
+  if (projectInfo.configFiles) {
+    const { configFiles } = projectInfo;
+    
+    // Add technology stack information
+    const technologies = Object.keys(configFiles);
+    if (technologies.length > 0) {
+      context += `Technologies detected: ${technologies.join(', ')}\n`;
+    }
+    
+    // Handle Python projects
+    if (configFiles.python) {
+      if (configFiles.python['pyproject.toml']) {
+        context += `Python project with pyproject.toml configuration\n`;
+      }
+      if (configFiles.python['requirements.txt']) {
+        const requirements = configFiles.python['requirements.txt'].content;
+        const deps = requirements.split('\n').filter((r: string) => r.trim() !== '' && !r.startsWith('#'));
+        context += `Python requirements: ${deps.slice(0, 10).join(', ')}${deps.length > 10 ? ' and more...' : ''}\n`;
+      }
+      if (configFiles.python['Pipfile']) {
+        context += `Python project using Pipenv for dependency management\n`;
+      }
+    }
+    
+    // Handle other technology stacks
+    if (configFiles.docker) {
+      context += `Docker configuration detected\n`;
+    }
+    
+    if (configFiles.cicd) {
+      const cicdFiles = Object.keys(configFiles.cicd);
+      context += `CI/CD configured: ${cicdFiles.join(', ')}\n`;
+    }
+    
+    if (configFiles.linting) {
+      const lintingTools = Object.keys(configFiles.linting);
+      context += `Code quality tools: ${lintingTools.join(', ')}\n`;
+    }
+  }
+  
+  // Add README files for context
+  if (projectInfo.README && Object.keys(projectInfo.README).length > 0) {
+    context += `\n## Project Documentation\n`;
+    Object.entries(projectInfo.README).forEach(([path, content]) => {
+      const truncatedContent = (content as string).length > 3000 
+        ? (content as string).substring(0, 3000) + '...\n[README truncated for brevity]'
+        : content as string;
+      
+      context += `### ${path}\n\`\`\`\n${truncatedContent}\n\`\`\`\n\n`;
+    });
+  }
+  
+  context += `## Project Structure\n\`\`\`\n${projectTree}\`\`\`\n\n`;
+  
+  return context;
+}
+
+/**
  * Create a prompt for analyzing a project directory
  */
 function createProjectAnalysisPrompt(
@@ -117,77 +227,11 @@ function createProjectAnalysisPrompt(
 - Main features and capabilities\n\n`;
   }
   
-  // Add project information
-  prompt += `## Project Information\n`;
-  prompt += `Path: ${projectPath}\n`;
-  
-  // Handle Node.js/JavaScript projects
-  if (projectInfo.packageJson) {
-    prompt += `Project name: ${projectInfo.packageJson.name || 'Unknown'}\n`;
-    prompt += `Description: ${projectInfo.packageJson.description || 'N/A'}\n`;
-    prompt += `Version: ${projectInfo.packageJson.version || 'N/A'}\n`;
-    prompt += `Dependencies: ${Object.keys(projectInfo.packageJson.dependencies || {}).join(', ') || 'None'}\n`;
-    prompt += `Dev Dependencies: ${Object.keys(projectInfo.packageJson.devDependencies || {}).join(', ') || 'None'}\n`;
-    
-    if (projectInfo.packageJson.scripts) {
-      prompt += `Scripts: ${Object.keys(projectInfo.packageJson.scripts).join(', ')}\n`;
-    }
-  }
-  
-  // Handle configuration files from new structure
-  if (projectInfo.configFiles) {
-    const { configFiles } = projectInfo;
-    
-    // Add technology stack information
-    const technologies = Object.keys(configFiles);
-    if (technologies.length > 0) {
-      prompt += `Technologies detected: ${technologies.join(', ')}\n`;
-    }
-    
-    // Handle Python projects
-    if (configFiles.python) {
-      if (configFiles.python['pyproject.toml']) {
-        prompt += `Python project with pyproject.toml configuration\n`;
-      }
-      if (configFiles.python['requirements.txt']) {
-        const requirements = configFiles.python['requirements.txt'].content;
-        const deps = requirements.split('\n').filter((r: string) => r.trim() !== '' && !r.startsWith('#'));
-        prompt += `Python requirements: ${deps.slice(0, 10).join(', ')}${deps.length > 10 ? ' and more...' : ''}\n`;
-      }
-      if (configFiles.python['Pipfile']) {
-        prompt += `Python project using Pipenv for dependency management\n`;
-      }
-    }
-    
-    // Handle other technology stacks
-    if (configFiles.docker) {
-      prompt += `Docker configuration detected\n`;
-    }
-    
-    if (configFiles.cicd) {
-      const cicdFiles = Object.keys(configFiles.cicd);
-      prompt += `CI/CD configured: ${cicdFiles.join(', ')}\n`;
-    }
-    
-    if (configFiles.linting) {
-      const lintingTools = Object.keys(configFiles.linting);
-      prompt += `Code quality tools: ${lintingTools.join(', ')}\n`;
-    }
-  }
-  
-  // Add README files for context
-  if (projectInfo.README && Object.keys(projectInfo.README).length > 0) {
-    prompt += `\n## Project Documentation\n`;
-    Object.entries(projectInfo.README).forEach(([path, content]) => {
-      const truncatedContent = (content as string).length > 3000 
-        ? (content as string).substring(0, 3000) + '...\n[README truncated for brevity]'
-        : content as string;
-      
-      prompt += `### ${path}\n\`\`\`\n${truncatedContent}\n\`\`\`\n\n`;
-    });
-  }
-  
-  prompt += `## Project Structure\n\`\`\`\n${projectTree}\`\`\`\n\n`;
+  // Reuse the repository context generation
+  const repositoryContext = generateRepositoryContext(projectInfo, projectTree, projectPath);
+  // Remove the "# Repository Context" header and add the content
+  const contextContent = repositoryContext.replace(/^# Repository Context\n\n/, '');
+  prompt += contextContent;
   
   // Add specific instructions based on analysis type
   if (options.review) {

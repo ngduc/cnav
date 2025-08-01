@@ -14,7 +14,7 @@ console.log(chalk.bold.blue('🧭 Commit Navigator (cnav)'));
 program
   .name('cnav')
   .description('Commit Navigator - A CLI tool to understand git commit changes using LLM')
-  .version(VERSION);
+  .version(VERSION)
 
 // Command: cnav analyze [path]
 program
@@ -22,6 +22,7 @@ program
   .description('Analyze a project directory (defaults to current directory)')
   .option('-r, --review', 'Perform a detailed code review of the project')
   .option('-m, --md', 'Output analysis in Markdown format')
+  .option('--oc, --output-context', 'Write repository context to README_context.md')
   .action(analyzeCommand);
   
 // Command: cnav last [n]
@@ -44,16 +45,21 @@ program
 program.addHelpText('after', `
 Examples:
   cnav                    - analyze current project directory
+  cnav --oc               - generate repository context to README_context.md
   cnav 2                  - analyze the last 2 commits
   cnav 3d                 - analyze commits in the last 3 days
+  cnav analyze --oc       - analyze and generate repository context to README_context.md
 `);
 
 // Handle custom logic before parsing
 const args = process.argv.slice(2);
 
-// If no arguments provided, run analyze command on current directory
-if (!args.length) {
-  analyzeCommand('.', {});
+// Check if --oc flag is present
+const hasOcFlag = args.includes('--oc') || args.includes('--output-context');
+
+// If no arguments provided, or only --oc flag, run analyze command on current directory
+if (!args.length || (hasOcFlag && args.length <= 1)) {
+  analyzeCommand('.', { outputContext: hasOcFlag });
 } 
 // If single argument that's not a flag or known command, treat as path to analyze
 else if (args.length === 1 && !args[0].startsWith('-') && !['last', 'changelog', 'analyze', 'help', '--help', '-h', '--version', '-V'].includes(args[0])) {
