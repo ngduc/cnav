@@ -59,6 +59,9 @@ cnav last 7d  # shorthand
 # Code review on recent changes
 cnav last --review
 
+# Analyze and generate repository context to README_context.md
+cnav analyze --oc
+
 # Update CHANGELOG file with recent changes
 cnav changelog
 ```
