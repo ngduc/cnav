@@ -8,7 +8,7 @@ import { promises as fs } from 'fs';
 export interface AnalyzeCommandOptions {
   review?: boolean;
   md?: boolean;
-  oc?: boolean;
+  outputContext?: boolean;
 }
 
 /**
@@ -44,7 +44,7 @@ export async function analyzeCommand(projectPath: string = '.', options: Analyze
       const projectTree = await getProjectTree();
       
       // Handle --oc flag for context output only
-      if (options.oc) {
+      if (options.outputContext) {
         spinner.text = 'Generating repository context...';
         
         const context = generateRepositoryContext(projectInfo, projectTree, targetPath);

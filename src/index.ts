@@ -45,6 +45,7 @@ program
 program.addHelpText('after', `
 Examples:
   cnav                    - analyze current project directory
+  cnav --oc               - generate repository context to README_context.md
   cnav 2                  - analyze the last 2 commits
   cnav 3d                 - analyze commits in the last 3 days
   cnav analyze --oc       - analyze and generate repository context to README_context.md
@@ -58,7 +59,7 @@ const hasOcFlag = args.includes('--oc') || args.includes('--output-context');
 
 // If no arguments provided, or only --oc flag, run analyze command on current directory
 if (!args.length || (hasOcFlag && args.length <= 1)) {
-  analyzeCommand('.', { oc: hasOcFlag });
+  analyzeCommand('.', { outputContext: hasOcFlag });
 } 
 // If single argument that's not a flag or known command, treat as path to analyze
 else if (args.length === 1 && !args[0].startsWith('-') && !['last', 'changelog', 'analyze', 'help', '--help', '-h', '--version', '-V'].includes(args[0])) {
