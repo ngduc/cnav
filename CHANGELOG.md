@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Find README.md files and analyze them
 - Support `cnav analyze <path>` to analyze a specific path
 - Support project config files for other languages
+- Support `--oc` flag to generate repository context to `README_context.md`
 
 ## [0.1.0] - 2025-04-15
 
