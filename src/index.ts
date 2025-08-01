@@ -15,7 +15,6 @@ program
   .name('cnav')
   .description('Commit Navigator - A CLI tool to understand git commit changes using LLM')
   .version(VERSION)
-  .option('--oc, --output-context', 'Write repository context to README_context.md');
 
 // Command: cnav analyze [path]
 program
@@ -48,6 +47,7 @@ Examples:
   cnav                    - analyze current project directory
   cnav 2                  - analyze the last 2 commits
   cnav 3d                 - analyze commits in the last 3 days
+  cnav analyze --oc       - analyze and generate repository context to README_context.md
 `);
 
 // Handle custom logic before parsing
